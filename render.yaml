@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: audio-link-converter-pro
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
