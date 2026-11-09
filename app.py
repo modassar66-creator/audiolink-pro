@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -53,13 +54,55 @@ def validate_url(url):
         raise ValueError("Host is not publicly reachable or points to a private address.")
     return url
 
+def extract_media_from_html(html, current_url):
+    # 1. Suno AI link resolution
+    if "suno.com" in current_url or "suno.ai" in current_url:
+        m = re.search(r"/song/([0-9a-fA-F-]{10,})", html)
+        if m:
+            return f"https://cdn1.suno.ai/{m.group(1)}.mp3"
+        m_cdn = re.search(r"https://cdn[0-9]?\.suno\.(?:ai|com)/[0-9a-fA-F-]{10,}\.mp3", html)
+        if m_cdn:
+            return m_cdn.group(0)
+
+    # 2. General OpenGraph audio/video tags
+    m_og = re.search(r'property=["\']og:audio(?::secure_url)?["\'][^>]+content=["\']([^"\']+)["\']', html, re.I)
+    if not m_og:
+        m_og = re.search(r'content=["\']([^"\']+)["\'][^>]+property=["\']og:audio', html, re.I)
+    if m_og:
+        return m_og.group(1)
+
+    return None
+
+def resolve_special_url(url, session):
+    p = urlparse(url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    }
+    # Suno share link auto-resolver
+    if "suno.com" in p.netloc or "suno.ai" in p.netloc:
+        try:
+            r = session.get(url, headers=headers, timeout=12, allow_redirects=True)
+            # From final redirected URL (/song/<uuid>)
+            m = re.search(r"/song/([0-9a-fA-F-]{10,})", r.url)
+            if m:
+                return f"https://cdn1.suno.ai/{m.group(1)}.mp3"
+            # From HTML content
+            extracted = extract_media_from_html(r.text, r.url)
+            if extracted:
+                return extracted
+        except Exception:
+            pass
+    return url
+
 def safe_download(url, target, job_id):
     session = requests.Session()
-    current = validate_url(url)
+    resolved_initial = resolve_special_url(url, session)
+    current = validate_url(resolved_initial)
     total = 0
+
     for _ in range(6):
         with session.get(current, stream=True, timeout=(10, 30), allow_redirects=False,
-                         headers={"User-Agent": "AudioLinkConverter/2.0"}) as r:
+                         headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}) as r:
             if r.is_redirect or r.is_permanent_redirect:
                 location = r.headers.get("Location")
                 if not location:
@@ -68,9 +111,16 @@ def safe_download(url, target, job_id):
                 continue
             r.raise_for_status()
             ctype = r.headers.get("Content-Type", "").lower()
+
+            # If page is HTML, attempt to extract underlying audio link
             if any(x in ctype for x in ("text/html", "application/json", "text/plain")):
-                raise ValueError("The URL points to a webpage, not a direct audio/video media file.")
-            
+                content_sample = b"".join(r.iter_content(chunk_size=1024 * 64))[: 512 * 1024].decode("utf-8", errors="ignore")
+                media_link = extract_media_from_html(content_sample, current)
+                if media_link and media_link != current:
+                    current = validate_url(media_link)
+                    continue
+                raise ValueError("The URL points to a webpage without direct media. Please use a direct media file or supported link.")
+
             content_length = r.headers.get("Content-Length")
             total_size = int(content_length) if content_length and content_length.isdigit() else 0
 
@@ -97,22 +147,22 @@ def ffmpeg_convert(source, output, fmt, bitrate="192k", start_sec=None, end_sec=
         "ogg": ["-codec:a", "libvorbis", "-q:a", "5"],
         "aac": ["-codec:a", "aac", "-b:a", bitrate, "-f", "adts"],
     }
-    
+
     cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y"]
-    
+
     if start_sec:
         cmd.extend(["-ss", str(start_sec)])
     if end_sec:
         cmd.extend(["-to", str(end_sec)])
-        
+
     cmd.extend(["-i", str(source), "-vn"])
-    
+
     filters = []
     if normalize:
         filters.append("loudnorm=I=-16:TP=-1.5:LRA=11")
     if filters:
         cmd.extend(["-af", ",".join(filters)])
-        
+
     cmd.extend(codecs.get(fmt, codecs["mp3"]))
     cmd.append(str(output))
 
