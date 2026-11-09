@@ -1,222 +1,404 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AudioLink Pro — High-Performance Audio Converter</title>
+  <title>AudioLink Pro — Studio Quality Audio Converter</title>
+  
+  <!-- Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
             sans: ['"Plus Jakarta Sans"', 'sans-serif'],
             display: ['"Space Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+            }
           }
         }
       }
     }
   </script>
+
   <style>
     :root { color-scheme: dark; }
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .font-display { font-family: 'Space Grotesk', sans-serif; }
-    .bg-mesh {
-      background: 
-        radial-gradient(at 100% 0%, rgba(30, 27, 75, 0.45) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, rgba(6, 78, 59, 0.40) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.9) 0px, transparent 100%);
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #030712;
     }
+    
+    /* Studio Ambient Lighting */
+    .bg-mesh-pro {
+      background: 
+        radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 15% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 50% 100%, rgba(15, 23, 42, 0.95) 0%, #030712 100%);
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .glass-input {
+      background: rgba(3, 7, 18, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-input:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+      background: rgba(3, 7, 18, 0.85);
+    }
+
+    .chip-btn {
+      transition: all 0.2s ease;
+    }
+    .chip-btn.active {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: #10b981;
+      color: #34d399;
+      box-shadow: 0 0 16px -2px rgba(16, 185, 129, 0.25);
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .shimmer-active {
+      position: relative;
+      overflow: hidden;
+    }
+    .shimmer-active::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      animation: shimmer 1.6s infinite;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #374151; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
-  <div class="fixed inset-0 bg-mesh pointer-events-none -z-10"></div>
 
-  <!-- Header -->
-  <header class="border-b border-slate-800/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+<body class="text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950">
+  <div class="fixed inset-0 bg-mesh-pro pointer-events-none -z-10"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800/60 backdrop-blur-xl sticky top-0 z-50 px-4 sm:px-8 py-3.5">
     <div class="max-w-5xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20">
-          <i class="fa-solid fa-waveform"></i>
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+        <div class="relative w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 p-[1px] shadow-lg shadow-emerald-500/20">
+          <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
+            <i class="fa-solid fa-waveform text-emerald-400 text-sm"></i>
+          </div>
         </div>
         <div>
-          <span class="text-xl font-display font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">AudioLink</span>
-          <span class="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20 tracking-wider">PRO</span>
+          <div class="flex items-center gap-2">
+            <span class="text-base sm:text-lg font-display font-bold tracking-tight text-white">AudioLink</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/25">PRO v2.5</span>
+          </div>
         </div>
       </div>
-      <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
-        <span class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 100% Free Engine
-        </span>
-        <span class="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300">FFmpeg 7.x</span>
+
+      <!-- Engine Badges -->
+      <div class="flex items-center gap-2.5 sm:gap-3 text-xs">
+        <div class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800/80 text-slate-300 font-mono text-[11px]">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Zero Loss Audio</span>
+        </div>
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 border border-slate-800/80 text-slate-400 text-[11px]">
+          <i class="fa-solid fa-server text-[10px] text-emerald-400"></i>
+          <span>FFmpeg 7.x</span>
+        </div>
       </div>
+
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="max-w-3xl mx-auto px-4 py-10 sm:py-14 flex-1 w-full">
-    <!-- Hero -->
-    <div class="text-center mb-10">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-xs font-semibold mb-4 tracking-wide uppercase">
-        <i class="fa-solid fa-bolt text-[11px]"></i> Fast & Zero Quality Loss
+  <!-- Hero & Main Workspace -->
+  <main class="max-w-3xl mx-auto px-4 py-8 sm:py-12 flex-1 w-full">
+    
+    <!-- Hero Header -->
+    <div class="text-center mb-8 sm:mb-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold mb-3 tracking-wide uppercase">
+        <i class="fa-solid fa-bolt-lightning text-[10px]"></i> Studio-Grade Audio Extraction
       </div>
-      <h1 class="text-4xl sm:text-5xl font-display font-extrabold tracking-tight mb-4 leading-tight">
-        Convert Any Link or File into <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 bg-clip-text text-transparent">Studio Audio</span>
+      <h1 class="text-3xl sm:text-5xl font-display font-extrabold tracking-tight mb-3 text-white leading-tight">
+        Convert Any Link or File into <br class="hidden sm:inline">
+        <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">Pristine Audio</span>
       </h1>
-      <p class="text-slate-400 text-sm sm:text-base max-w-lg mx-auto">High-performance server-side extraction with bitrate controls, volume normalization, and interactive waveform playback.</p>
+      <p class="text-slate-400 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+        High-performance asynchronous audio transcoder with bitrate mastering, volume leveling, and live visual waveform.
+      </p>
     </div>
 
-    <!-- Conversion Card -->
-    <div class="bg-slate-900/85 border border-slate-800/90 rounded-2xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-      <!-- Tabs -->
-      <div class="flex border-b border-slate-800 mb-6 pb-2 gap-6 text-sm font-semibold">
-        <button id="tabLink" class="text-emerald-400 border-b-2 border-emerald-400 pb-2 flex items-center gap-2 transition outline-none">
-          <i class="fa-solid fa-link"></i> Media Link
+    <!-- Main Converter Workspace Card -->
+    <div class="glass-panel rounded-3xl p-5 sm:p-8 shadow-2xl relative">
+      
+      <!-- Ambient Glow Behind Card -->
+      <div class="absolute -top-16 -right-16 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Segmented Input Mode Tabs (iOS / Vercel Style) -->
+      <div class="flex p-1 bg-slate-950/70 border border-slate-800/80 rounded-2xl mb-6">
+        <button id="tabLink" class="flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20">
+          <i class="fa-solid fa-link text-xs"></i>
+          <span>Media Link / Suno</span>
         </button>
-        <button id="tabUpload" class="text-slate-400 hover:text-slate-200 pb-2 flex items-center gap-2 transition outline-none">
-          <i class="fa-solid fa-cloud-arrow-up"></i> Upload Local File
+        <button id="tabUpload" class="flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200">
+          <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
+          <span>Upload Local File</span>
         </button>
       </div>
 
       <!-- Mode 1: URL Input -->
       <div id="sectionLink" class="space-y-3">
-        <label for="mediaUrl" class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Direct Media / Suno URL</label>
+        <div class="flex justify-between items-center text-xs">
+          <label for="mediaUrl" class="font-bold text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <i class="fa-regular fa-compass text-emerald-400"></i> Media Source Link
+          </label>
+          <span class="text-slate-500 text-[11px]">Direct MP4/MP3, Podcasts, Suno, etc.</span>
+        </div>
+        
         <div class="relative flex items-center">
-          <input id="mediaUrl" type="url" placeholder="https://example.com/audio.mp4 or Suno link" 
-                 class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 pr-24 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition placeholder:text-slate-600">
-          <button id="pasteBtn" type="button" class="absolute right-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 transition flex items-center gap-1.5">
-            <i class="fa-regular fa-clipboard"></i> Paste
+          <input id="mediaUrl" type="url" placeholder="Paste link: https://suno.com/s/... or video/audio link" 
+                 class="glass-input w-full rounded-2xl px-4 py-3.5 pr-24 text-xs sm:text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none">
+          <button id="pasteBtn" type="button" class="absolute right-2 px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700 text-[11px] font-semibold rounded-xl text-slate-300 transition flex items-center gap-1.5 border border-slate-700/60 shadow-sm">
+            <i class="fa-regular fa-clipboard text-emerald-400"></i>
+            <span>Paste</span>
           </button>
         </div>
       </div>
 
-      <!-- Suno Direct Unlock Card (Appears automatically for Suno links) -->
-      <div id="sunoUnlockBox" class="hidden my-4 p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <!-- Suno Instant Unlock Badge -->
+      <div id="sunoUnlockBox" class="hidden mt-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 to-teal-950/30 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-            <i class="fa-solid fa-unlock"></i>
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
+            <i class="fa-solid fa-unlock-keyhole"></i>
           </div>
           <div>
-            <p class="text-xs font-bold text-emerald-300">Suno Direct Stream Unlocked!</p>
-            <p class="text-[11px] text-slate-400">Download directly without paying Suno's subscription.</p>
+            <p class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+              <span>Suno Stream Unlocked</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400">100% Free</span>
+            </p>
+            <p class="text-[11px] text-slate-400">Direct CDN audio link extracted. No Suno subscription required.</p>
           </div>
         </div>
-        <a id="sunoDirectLink" href="#" target="_blank" class="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-lg transition text-center flex items-center justify-center gap-2">
-          <span>Free Direct Download</span>
-          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <a id="sunoDirectLink" href="#" target="_blank" class="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl transition text-center flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 shrink-0">
+          <span>Free Direct Stream</span>
+          <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
         </a>
       </div>
 
-      <!-- Mode 2: File Upload -->
+      <!-- Mode 2: Drag & Drop File Upload Area -->
       <div id="sectionUpload" class="hidden space-y-3">
-        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Select or Drag File</label>
-        <div id="dropZone" class="border-2 border-dashed border-slate-800 hover:border-emerald-500/70 rounded-xl p-8 text-center cursor-pointer transition bg-slate-950/60 group">
-          <div class="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 group-hover:border-emerald-500/40 flex items-center justify-center mx-auto mb-3 transition">
-            <i class="fa-solid fa-cloud-arrow-up text-xl text-slate-400 group-hover:text-emerald-400 transition"></i>
+        <div class="flex justify-between items-center text-xs">
+          <label class="font-bold text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+            <i class="fa-solid fa-file-arrow-up text-emerald-400"></i> Local Audio / Video File
+          </label>
+          <span class="text-slate-500 text-[11px]">Up to 250MB</span>
+        </div>
+        
+        <div id="dropZone" class="border-2 border-dashed border-slate-800 hover:border-emerald-500/60 rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition bg-slate-950/50 group">
+          <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 group-hover:border-emerald-500/40 flex items-center justify-center mx-auto mb-3 transition shadow-inner">
+            <i class="fa-solid fa-cloud-arrow-up text-lg text-slate-400 group-hover:text-emerald-400 transition"></i>
           </div>
-          <p class="text-sm font-semibold text-slate-200" id="fileLabel">Drop your audio/video file here, or click to browse</p>
-          <p class="text-xs text-slate-500 mt-1">Supports MP4, MKV, WEBM, MOV, FLV, AVI, WAV, AAC, MP3 up to 250MB</p>
+          <p class="text-xs sm:text-sm font-semibold text-slate-200" id="fileLabel">Drop media file here, or click to browse</p>
+          <p class="text-[11px] text-slate-500 mt-1">MP4, MKV, MOV, WEBM, FLV, AVI, WAV, AAC, MP3</p>
           <input type="file" id="fileInput" class="hidden" accept="audio/*,video/*">
         </div>
       </div>
 
-      <!-- Settings Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
+      <!-- Audio Configuration Grid -->
+      <div class="mt-6 space-y-4">
+        
+        <!-- Output Format Chips -->
         <div>
-          <label for="formatSelect" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Output Format</label>
-          <select id="formatSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-200 cursor-pointer">
-            <option value="mp3">MP3 — Universal Audio</option>
-            <option value="wav">WAV — Uncompressed Studio PCM</option>
-            <option value="m4a">M4A — Apple AAC</option>
-            <option value="flac">FLAC — Lossless Audiophile</option>
-            <option value="ogg">OGG — Vorbis</option>
-            <option value="aac">AAC — Raw ADTS</option>
-          </select>
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Target Format</label>
+            <span id="formatDesc" class="text-[11px] text-slate-500 font-mono">MP3 (Universal compatibility)</span>
+          </div>
+          <div class="grid grid-cols-3 sm:grid-cols-6 gap-2" id="formatGrid">
+            <button type="button" data-val="mp3" class="chip-btn active py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center">MP3</button>
+            <button type="button" data-val="wav" class="chip-btn py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400 hover:border-slate-700">WAV</button>
+            <button type="button" data-val="m4a" class="chip-btn py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400 hover:border-slate-700">M4A</button>
+            <button type="button" data-val="flac" class="chip-btn py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400 hover:border-slate-700">FLAC</button>
+            <button type="button" data-val="aac" class="chip-btn py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400 hover:border-slate-700">AAC</button>
+            <button type="button" data-val="ogg" class="chip-btn py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400 hover:border-slate-700">OGG</button>
+          </div>
+          <input type="hidden" id="formatSelect" value="mp3">
         </div>
-        <div>
-          <label for="bitrateSelect" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Quality / Bitrate</label>
-          <select id="bitrateSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 text-slate-200 cursor-pointer">
-            <option value="320k">320 kbps (High Fidelity Studio)</option>
-            <option value="256k">256 kbps (Premium Quality)</option>
-            <option value="192k" selected>192 kbps (Standard Balanced)</option>
-            <option value="128k">128 kbps (Compact)</option>
-          </select>
-        </div>
-      </div>
 
-      <!-- Audio Enhancement -->
-      <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 mb-6 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <input type="checkbox" id="normalizeAudio" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer">
-          <label for="normalizeAudio" class="text-xs sm:text-sm font-medium text-slate-300 cursor-pointer select-none">
-            Normalize Audio Loudness <span class="text-xs text-slate-500 font-normal">(EBU R128 auto level balance)</span>
-          </label>
+        <!-- Bitrate & Normalization Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <!-- Bitrate Selector Pills -->
+          <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Bitrate Quality</span>
+              <span class="text-[10px] text-emerald-400 font-mono font-medium" id="bitrateBadge">192 kbps (Standard)</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800" id="bitrateGrid">
+              <button type="button" data-val="128k" class="py-1.5 text-[11px] font-mono font-semibold rounded-lg text-slate-400 hover:text-white transition">128k</button>
+              <button type="button" data-val="192k" class="py-1.5 text-[11px] font-mono font-semibold rounded-lg bg-emerald-500 text-slate-950 font-bold shadow-sm transition">192k</button>
+              <button type="button" data-val="256k" class="py-1.5 text-[11px] font-mono font-semibold rounded-lg text-slate-400 hover:text-white transition">256k</button>
+              <button type="button" data-val="320k" class="py-1.5 text-[11px] font-mono font-semibold rounded-lg text-slate-400 hover:text-white transition">320k</button>
+            </div>
+            <input type="hidden" id="bitrateSelect" value="192k">
+          </div>
+
+          <!-- Loudness Normalizer (EBU R128) -->
+          <div class="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-slate-200">Volume Leveler</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">EBU R128</span>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">Normalize uneven or low volume</p>
+            </div>
+            
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="normalizeAudio" class="sr-only peer">
+              <div class="w-10 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
         </div>
+
       </div>
 
       <!-- Action Button -->
-      <button id="convertBtn" class="w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-bold py-3.5 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 text-sm sm:text-base">
-        <span>Start Conversion</span>
-        <i class="fa-solid fa-arrow-right"></i>
+      <button id="convertBtn" class="mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-400 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-extrabold text-sm sm:text-base tracking-wide transition shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 group">
+        <span>Convert & Master Audio</span>
+        <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
       </button>
 
-      <!-- Progress Section -->
-      <div id="progressSection" class="hidden mt-6 pt-6 border-t border-slate-800">
-        <div class="flex justify-between items-center text-xs font-semibold mb-2">
-          <span id="stepText" class="text-slate-400">Processing...</span>
-          <span id="progressPercent" class="text-emerald-400 font-mono">0%</span>
+      <!-- Multi-Stage Progress Stepper -->
+      <div id="progressSection" class="hidden mt-6 pt-6 border-t border-slate-800/80">
+        <div class="flex justify-between items-center text-xs font-semibold mb-2.5">
+          <span id="stepText" class="text-slate-300 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Initializing engine...</span>
+          </span>
+          <span id="progressPercent" class="text-emerald-400 font-mono font-bold">0%</span>
         </div>
-        <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
-          <div id="progressBar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+        <div class="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/80">
+          <div id="progressBar" class="bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 h-2 rounded-full transition-all duration-300 w-0 shimmer-active"></div>
         </div>
-        <div id="errorMessage" class="hidden mt-3 text-xs text-rose-400 bg-rose-950/40 border border-rose-900/50 p-3.5 rounded-xl flex items-start gap-2">
-          <i class="fa-solid fa-circle-exclamation mt-0.5 text-rose-400"></i>
-          <span id="errorText">An error occurred.</span>
+        
+        <div id="errorMessage" class="hidden mt-4 text-xs text-rose-300 bg-rose-950/40 border border-rose-900/60 p-4 rounded-2xl flex items-start gap-3">
+          <i class="fa-solid fa-circle-exclamation mt-0.5 text-rose-400 text-sm"></i>
+          <div>
+            <p class="font-bold text-rose-200">Conversion Interrupted</p>
+            <p id="errorText" class="text-rose-300/90 mt-0.5 leading-relaxed">Details of the issue.</p>
+          </div>
         </div>
       </div>
 
-      <!-- Result & Player -->
-      <div id="resultSection" class="hidden mt-6 pt-6 border-t border-slate-800 space-y-4">
+      <!-- Result Card & Waveform Player -->
+      <div id="resultSection" class="hidden mt-6 pt-6 border-t border-slate-800/80 space-y-4">
+        
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-circle-check text-emerald-400"></i> Converted Successfully
+            <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
+            <span>Ready for Playback & Download</span>
           </span>
-          <span id="fileBadge" class="text-xs bg-slate-800 border border-slate-700 px-3 py-1 rounded-full text-slate-300 font-mono">audio.mp3</span>
+          <span id="fileBadge" class="text-xs bg-slate-950 border border-slate-800 px-3 py-1 rounded-full text-slate-300 font-mono">converted-audio.mp3</span>
         </div>
 
-        <!-- WaveSurfer Player -->
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 sm:p-5">
-          <div id="waveform" class="mb-3 cursor-pointer"></div>
-          <div class="flex items-center justify-between">
+        <!-- WaveSurfer High-End Player -->
+        <div class="bg-slate-950/90 border border-slate-800/90 rounded-2xl p-4 sm:p-5">
+          <div id="waveform" class="mb-3.5 cursor-pointer"></div>
+          
+          <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-              <button id="playBtn" class="w-10 h-10 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center transition shadow-md">
-                <i class="fa-solid fa-play" id="playIcon"></i>
+              <button id="playBtn" class="w-11 h-11 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 flex items-center justify-center transition shadow-lg shadow-emerald-500/25">
+                <i class="fa-solid fa-play text-base" id="playIcon"></i>
               </button>
-              <div class="text-xs text-slate-400">
-                <p class="font-semibold text-slate-200">Interactive Preview</p>
-                <p id="audioTime" class="font-mono text-slate-500">0:00 / 0:00</p>
+              <div>
+                <p class="text-xs font-bold text-slate-200">Mastered Preview</p>
+                <p id="audioTime" class="font-mono text-xs text-slate-400">0:00 / 0:00</p>
               </div>
             </div>
-            <span class="text-[11px] text-slate-500 hidden sm:inline-block">Click waveform to seek</span>
+
+            <div class="flex items-center gap-2 text-xs text-slate-400">
+              <span class="text-[11px] text-slate-500 hidden sm:inline">Seek anytime</span>
+            </div>
           </div>
         </div>
 
         <!-- Download Button -->
-        <a id="downloadBtn" href="#" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 text-sm">
+        <a id="downloadBtn" href="#" class="w-full bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 text-white font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs sm:text-sm shadow-md">
           <i class="fa-solid fa-download text-emerald-400"></i>
-          <span>Download Converted Audio</span>
+          <span>Save Audio to Device</span>
         </a>
       </div>
+
     </div>
+
+    <!-- Feature Pillars -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-6">
+      <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 flex items-start gap-3">
+        <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0">
+          <i class="fa-solid fa-microchip"></i>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-200">Async Task Engine</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">Non-blocking background job queue avoids HTTP gateway timeouts.</p>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 flex items-start gap-3">
+        <div class="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-200">Auto Storage Cleanup</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">Temporary audio files are completely erased after 15 minutes.</p>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/60 flex items-start gap-3">
+        <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
+          <i class="fa-solid fa-sliders"></i>
+        </div>
+        <div>
+          <h4 class="text-xs font-bold text-slate-200">Studio Mastering</h4>
+          <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">Up to 320 kbps high-bitrate encoding with loudnorm normalization.</p>
+        </div>
+      </div>
+    </div>
+
   </main>
 
-  <footer class="border-t border-slate-900 text-center py-6 text-xs text-slate-600 px-4">
-    AudioLink Pro · Clean, Secure & Robust Server-Side Audio Engine
+  <!-- Clean Minimal Footer -->
+  <footer class="border-t border-slate-900/90 text-center py-6 text-xs text-slate-500 px-4">
+    <p>AudioLink Pro Engine · Powered by FFmpeg 7 & Flask · Fast, Secure & Free</p>
   </footer>
 
   <script>
@@ -233,8 +415,13 @@
     const dropZone = document.getElementById("dropZone");
     const fileInput = document.getElementById("fileInput");
     const fileLabel = document.getElementById("fileLabel");
+
     const formatSelect = document.getElementById("formatSelect");
+    const formatDesc = document.getElementById("formatDesc");
+    const formatGrid = document.getElementById("formatGrid");
     const bitrateSelect = document.getElementById("bitrateSelect");
+    const bitrateBadge = document.getElementById("bitrateBadge");
+    const bitrateGrid = document.getElementById("bitrateGrid");
     const normalizeAudio = document.getElementById("normalizeAudio");
     const convertBtn = document.getElementById("convertBtn");
 
@@ -255,20 +442,56 @@
     const playIcon = document.getElementById("playIcon");
     const audioTime = document.getElementById("audioTime");
 
+    const formatDescriptions = {
+      mp3: "MP3 (Universal compatibility)",
+      wav: "WAV (Studio uncompressed 16-bit PCM)",
+      m4a: "M4A (Apple AAC high-efficiency)",
+      flac: "FLAC (Lossless Hi-Fi master)",
+      aac: "AAC (Raw ADTS container)",
+      ogg: "OGG (Vorbis audio)"
+    };
+
+    // Mode Switching
     tabLink.addEventListener("click", () => {
       currentMode = "url";
-      tabLink.className = "text-emerald-400 border-b-2 border-emerald-400 pb-2 flex items-center gap-2 transition outline-none";
-      tabUpload.className = "text-slate-400 hover:text-slate-200 pb-2 flex items-center gap-2 transition outline-none";
+      tabLink.className = "flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20";
+      tabUpload.className = "flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200";
       sectionLink.classList.remove("hidden");
       sectionUpload.classList.add("hidden");
     });
 
     tabUpload.addEventListener("click", () => {
       currentMode = "file";
-      tabUpload.className = "text-emerald-400 border-b-2 border-emerald-400 pb-2 flex items-center gap-2 transition outline-none";
-      tabLink.className = "text-slate-400 hover:text-slate-200 pb-2 flex items-center gap-2 transition outline-none";
+      tabUpload.className = "flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20";
+      tabLink.className = "flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200";
       sectionUpload.classList.remove("hidden");
       sectionLink.classList.add("hidden");
+    });
+
+    // Format Chips Click Handlers
+    formatGrid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        formatGrid.querySelectorAll("button").forEach(b => {
+          b.className = "chip-btn py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center text-slate-400 hover:border-slate-700";
+        });
+        btn.className = "chip-btn active py-2.5 rounded-xl border border-slate-800 text-xs font-semibold text-center";
+        const val = btn.getAttribute("data-val");
+        formatSelect.value = val;
+        formatDesc.textContent = formatDescriptions[val] || val.toUpperCase();
+      });
+    });
+
+    // Bitrate Pills Click Handlers
+    bitrateGrid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        bitrateGrid.querySelectorAll("button").forEach(b => {
+          b.className = "py-1.5 text-[11px] font-mono font-semibold rounded-lg text-slate-400 hover:text-white transition";
+        });
+        btn.className = "py-1.5 text-[11px] font-mono font-semibold rounded-lg bg-emerald-500 text-slate-950 font-bold shadow-sm transition";
+        const val = btn.getAttribute("data-val");
+        bitrateSelect.value = val;
+        bitrateBadge.textContent = `${val} (${val === '320k' ? 'Hi-Fi HD' : val === '192k' ? 'Standard' : val === '128k' ? 'Compact' : 'Premium'})`;
+      });
     });
 
     function checkSunoUrl(val) {
@@ -276,11 +499,10 @@
         const match = val.match(/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/);
         if (match) {
           sunoDirectLink.href = `https://cdn1.suno.ai/${match[1]}.mp3`;
-          sunoUnlockBox.classList.remove("hidden");
         } else {
           sunoDirectLink.href = `https://sunodownloader.ai/?url=${encodeURIComponent(val)}`;
-          sunoUnlockBox.classList.remove("hidden");
         }
+        sunoUnlockBox.classList.remove("hidden");
       } else {
         sunoUnlockBox.classList.add("hidden");
       }
@@ -296,7 +518,7 @@
           checkSunoUrl(mediaUrl.value);
         }
       } catch (err) {
-        alert("Paste directly into input field.");
+        alert("Clipboard permission blocked. Paste manually into the field.");
       }
     });
 
@@ -308,11 +530,11 @@
       }
     });
 
-    dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("border-emerald-500"); });
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("border-emerald-500"));
+    dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("border-emerald-500", "bg-slate-900/40"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("border-emerald-500", "bg-slate-900/40"));
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault();
-      dropZone.classList.remove("border-emerald-500");
+      dropZone.classList.remove("border-emerald-500", "bg-slate-900/40");
       if (e.dataTransfer.files.length) {
         selectedFile = e.dataTransfer.files[0];
         fileLabel.textContent = `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)`;
@@ -328,17 +550,20 @@
         cursorColor: "#34d399",
         barWidth: 2,
         barGap: 3,
-        height: 48,
+        barRadius: 2,
+        height: 52,
         url: url
       });
-      wavesurfer.on("ready", () => { audioTime.textContent = `0:00 / ${formatTime(wavesurfer.getDuration())}`; });
+      wavesurfer.on("ready", () => {
+        audioTime.textContent = `0:00 / ${formatTime(wavesurfer.getDuration())}`;
+      });
       wavesurfer.on("audioprocess", () => {
         audioTime.textContent = `${formatTime(wavesurfer.getCurrentTime())} / ${formatTime(wavesurfer.getDuration())}`;
       });
-      wavesurfer.on("finish", () => { playIcon.className = "fa-solid fa-play"; });
+      wavesurfer.on("finish", () => { playIcon.className = "fa-solid fa-play text-base"; });
       playBtn.onclick = () => {
         wavesurfer.playPause();
-        playIcon.className = wavesurfer.isPlaying() ? "fa-solid fa-pause" : "fa-solid fa-play";
+        playIcon.className = wavesurfer.isPlaying() ? "fa-solid fa-pause text-base" : "fa-solid fa-play text-base";
       };
     }
 
@@ -352,9 +577,9 @@
       errorMessage.classList.add("hidden");
       resultSection.classList.add("hidden");
       progressSection.classList.remove("hidden");
-      progressBar.style.width = "5%";
-      progressPercent.textContent = "5%";
-      stepText.textContent = "Submitting conversion task...";
+      progressBar.style.width = "6%";
+      progressPercent.textContent = "6%";
+      stepText.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span><span>Connecting to engine...</span>';
 
       const formData = new FormData();
       formData.append("format", formatSelect.value);
@@ -363,15 +588,15 @@
 
       if (currentMode === "url") {
         const url = mediaUrl.value.trim();
-        if (!url) { showError("Please enter a media URL first."); return; }
+        if (!url) { showError("Enter a media URL first."); return; }
         formData.append("url", url);
       } else {
-        if (!selectedFile) { showError("Please select a file to upload."); return; }
+        if (!selectedFile) { showError("Select a media file to upload."); return; }
         formData.append("file", selectedFile);
       }
 
       convertBtn.disabled = true;
-      convertBtn.classList.add("opacity-60", "cursor-wait");
+      convertBtn.classList.add("opacity-50", "cursor-wait");
 
       try {
         const res = await fetch("/api/convert", { method: "POST", body: formData });
@@ -381,7 +606,7 @@
       } catch (err) {
         showError(err.message);
         convertBtn.disabled = false;
-        convertBtn.classList.remove("opacity-60", "cursor-wait");
+        convertBtn.classList.remove("opacity-50", "cursor-wait");
       }
     });
 
@@ -390,17 +615,17 @@
         try {
           const res = await fetch(`/api/jobs/${jobId}`);
           const job = await res.json();
-          if (!res.ok) throw new Error(job.error || "Failed checking status.");
+          if (!res.ok) throw new Error(job.error || "Status check failed.");
 
-          const pct = job.progress || 10;
+          const pct = job.progress || 12;
           progressBar.style.width = `${pct}%`;
           progressPercent.textContent = `${pct}%`;
-          stepText.textContent = job.step || "Working...";
+          stepText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span><span>${job.step || "Processing audio stream..."}</span>`;
 
           if (job.status === "completed") {
             clearInterval(pollInterval);
             convertBtn.disabled = false;
-            convertBtn.classList.remove("opacity-60", "cursor-wait");
+            convertBtn.classList.remove("opacity-50", "cursor-wait");
 
             fileBadge.textContent = job.filename;
             downloadBtn.href = job.download_url;
@@ -410,13 +635,13 @@
             initWaveform(job.preview_url);
           } else if (job.status === "failed") {
             clearInterval(pollInterval);
-            throw new Error(job.error || "Conversion failed.");
+            throw new Error(job.error || "Audio conversion failed.");
           }
         } catch (err) {
           clearInterval(pollInterval);
           showError(err.message);
           convertBtn.disabled = false;
-          convertBtn.classList.remove("opacity-60", "cursor-wait");
+          convertBtn.classList.remove("opacity-50", "cursor-wait");
         }
       }, 1200);
     }
@@ -426,7 +651,7 @@
       errorMessage.classList.remove("hidden");
       progressBar.style.width = "0%";
       progressPercent.textContent = "0%";
-      stepText.textContent = "Failed";
+      stepText.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500"></span><span class="text-rose-400">Error encountered</span>';
     }
   </script>
 </body>
