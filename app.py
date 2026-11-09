@@ -76,17 +76,17 @@ def extract_media_from_html(html, current_url):
 def resolve_special_url(url, session):
     p = urlparse(url)
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Referer": "https://suno.com/",
+        "Origin": "https://suno.com"
     }
     # Suno share link auto-resolver
     if "suno.com" in p.netloc or "suno.ai" in p.netloc:
         try:
             r = session.get(url, headers=headers, timeout=12, allow_redirects=True)
-            # From final redirected URL (/song/<uuid>)
             m = re.search(r"/song/([0-9a-fA-F-]{10,})", r.url)
             if m:
                 return f"https://cdn1.suno.ai/{m.group(1)}.mp3"
-            # From HTML content
             extracted = extract_media_from_html(r.text, r.url)
             if extracted:
                 return extracted
@@ -97,46 +97,82 @@ def resolve_special_url(url, session):
 def safe_download(url, target, job_id):
     session = requests.Session()
     resolved_initial = resolve_special_url(url, session)
-    current = validate_url(resolved_initial)
-    total = 0
 
-    for _ in range(6):
-        with session.get(current, stream=True, timeout=(10, 30), allow_redirects=False,
-                         headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}) as r:
-            if r.is_redirect or r.is_permanent_redirect:
-                location = r.headers.get("Location")
-                if not location:
-                    raise ValueError("Source returned an invalid redirect.")
-                current = validate_url(urljoin(current, location))
-                continue
-            r.raise_for_status()
-            ctype = r.headers.get("Content-Type", "").lower()
+    # Candidate URLs for Suno CDN fallback
+    candidates = [resolved_initial]
+    m_suno = re.search(r"([0-9a-fA-F-]{10,})\.mp3", resolved_initial)
+    if m_suno and ("suno.ai" in resolved_initial or "suno.com" in resolved_initial):
+        sid = m_suno.group(1)
+        candidates = [
+            f"https://cdn1.suno.ai/{sid}.mp3",
+            f"https://cdn2.suno.ai/{sid}.mp3",
+            f"https://audiopipe.suno.ai/?item_id={sid}"
+        ]
 
-            # If page is HTML, attempt to extract underlying audio link
-            if any(x in ctype for x in ("text/html", "application/json", "text/plain")):
-                content_sample = b"".join(r.iter_content(chunk_size=1024 * 64))[: 512 * 1024].decode("utf-8", errors="ignore")
-                media_link = extract_media_from_html(content_sample, current)
-                if media_link and media_link != current:
-                    current = validate_url(media_link)
-                    continue
-                raise ValueError("The URL points to a webpage without direct media. Please use a direct media file or supported link.")
+    last_error = None
+    for cand_url in candidates:
+        try:
+            current = validate_url(cand_url)
+            total = 0
 
-            content_length = r.headers.get("Content-Length")
-            total_size = int(content_length) if content_length and content_length.isdigit() else 0
+            req_headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Accept": "*/*",
+                "Accept-Encoding": "identity"
+            }
+            if "suno.ai" in current or "suno.com" in current:
+                req_headers["Referer"] = "https://suno.com/"
+                req_headers["Origin"] = "https://suno.com"
 
-            with open(target, "wb") as f:
-                for chunk in r.iter_content(1024 * 256):
-                    if not chunk:
+            for _ in range(6):
+                with session.get(current, stream=True, timeout=(10, 30), allow_redirects=False,
+                                 headers=req_headers) as r:
+                    if r.is_redirect or r.is_permanent_redirect:
+                        location = r.headers.get("Location")
+                        if not location:
+                            raise ValueError("Source returned an invalid redirect.")
+                        current = validate_url(urljoin(current, location))
+                        if "suno.ai" in current or "suno.com" in current:
+                            req_headers["Referer"] = "https://suno.com/"
+                            req_headers["Origin"] = "https://suno.com"
                         continue
-                    total += len(chunk)
-                    if total > MAX_BYTES:
-                        raise ValueError(f"File exceeds maximum allowed size ({MAX_BYTES // (1024*1024)}MB).")
-                    f.write(chunk)
-                    if total_size > 0:
-                        pct = int((total / total_size) * 45)  # 0-45% for download
-                        update_job(job_id, progress=pct, step="Downloading media file...")
-            return
-    raise ValueError("Too many redirects.")
+
+                    # If 403 Forbidden, raise to try next fallback candidate
+                    if r.status_code == 403:
+                        r.raise_for_status()
+
+                    r.raise_for_status()
+                    ctype = r.headers.get("Content-Type", "").lower()
+
+                    if any(x in ctype for x in ("text/html", "application/json", "text/plain")):
+                        content_sample = b"".join(r.iter_content(chunk_size=1024 * 64))[: 512 * 1024].decode("utf-8", errors="ignore")
+                        media_link = extract_media_from_html(content_sample, current)
+                        if media_link and media_link != current:
+                            current = validate_url(media_link)
+                            continue
+                        raise ValueError("The URL points to a webpage without direct media. Please use a direct media file or supported link.")
+
+                    content_length = r.headers.get("Content-Length")
+                    total_size = int(content_length) if content_length and content_length.isdigit() else 0
+
+                    with open(target, "wb") as f:
+                        for chunk in r.iter_content(1024 * 256):
+                            if not chunk:
+                                continue
+                            total += len(chunk)
+                            if total > MAX_BYTES:
+                                raise ValueError(f"File exceeds maximum allowed size ({MAX_BYTES // (1024*1024)}MB).")
+                            f.write(chunk)
+                            if total_size > 0:
+                                pct = int((total / total_size) * 45)
+                                update_job(job_id, progress=pct, step="Downloading media file...")
+                    return
+        except Exception as e:
+            last_error = e
+            continue
+
+    if last_error:
+        raise last_error
 
 def ffmpeg_convert(source, output, fmt, bitrate="192k", start_sec=None, end_sec=None, normalize=False):
     codecs = {
@@ -217,7 +253,6 @@ def background_cleanup_daemon():
         to_delete = []
         with LOCK:
             for jid, info in list(JOBS.items()):
-                # Delete jobs older than 15 minutes (900s)
                 if now - info.get("created_at", now) > 900:
                     to_delete.append((jid, BASE_DIR / jid))
                     JOBS.pop(jid, None)
