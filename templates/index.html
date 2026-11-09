@@ -63,7 +63,7 @@
     <!-- Hero -->
     <div class="text-center mb-10">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-xs font-semibold mb-4 tracking-wide uppercase">
-        <i class="fa-solid fa-bolt text-[11px]"></i> Lightning Fast & Zero Quality Loss
+        <i class="fa-solid fa-bolt text-[11px]"></i> Fast & Zero Quality Loss
       </div>
       <h1 class="text-4xl sm:text-5xl font-display font-extrabold tracking-tight mb-4 leading-tight">
         Convert Any Link or File into <span class="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 bg-clip-text text-transparent">Studio Audio</span>
@@ -85,14 +85,31 @@
 
       <!-- Mode 1: URL Input -->
       <div id="sectionLink" class="space-y-3">
-        <label for="mediaUrl" class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Direct Media URL</label>
+        <label for="mediaUrl" class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Direct Media / Suno URL</label>
         <div class="relative flex items-center">
-          <input id="mediaUrl" type="url" placeholder="https://example.com/audio-or-video.mp4" 
+          <input id="mediaUrl" type="url" placeholder="https://example.com/audio.mp4 or Suno link" 
                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 pr-24 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition placeholder:text-slate-600">
           <button id="pasteBtn" type="button" class="absolute right-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg text-slate-300 transition flex items-center gap-1.5">
             <i class="fa-regular fa-clipboard"></i> Paste
           </button>
         </div>
+      </div>
+
+      <!-- Suno Direct Unlock Card (Appears automatically for Suno links) -->
+      <div id="sunoUnlockBox" class="hidden my-4 p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-unlock"></i>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-emerald-300">Suno Direct Stream Unlocked!</p>
+            <p class="text-[11px] text-slate-400">Download directly without paying Suno's subscription.</p>
+          </div>
+        </div>
+        <a id="sunoDirectLink" href="#" target="_blank" class="w-full sm:w-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-lg transition text-center flex items-center justify-center gap-2">
+          <span>Free Direct Download</span>
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </a>
       </div>
 
       <!-- Mode 2: File Upload -->
@@ -221,6 +238,9 @@
     const normalizeAudio = document.getElementById("normalizeAudio");
     const convertBtn = document.getElementById("convertBtn");
 
+    const sunoUnlockBox = document.getElementById("sunoUnlockBox");
+    const sunoDirectLink = document.getElementById("sunoDirectLink");
+
     const progressSection = document.getElementById("progressSection");
     const progressBar = document.getElementById("progressBar");
     const progressPercent = document.getElementById("progressPercent");
@@ -251,10 +271,30 @@
       sectionLink.classList.add("hidden");
     });
 
+    function checkSunoUrl(val) {
+      if (val.includes("suno.com") || val.includes("suno.ai")) {
+        const match = val.match(/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/);
+        if (match) {
+          sunoDirectLink.href = `https://cdn1.suno.ai/${match[1]}.mp3`;
+          sunoUnlockBox.classList.remove("hidden");
+        } else {
+          sunoDirectLink.href = `https://sunodownloader.ai/?url=${encodeURIComponent(val)}`;
+          sunoUnlockBox.classList.remove("hidden");
+        }
+      } else {
+        sunoUnlockBox.classList.add("hidden");
+      }
+    }
+
+    mediaUrl.addEventListener("input", (e) => checkSunoUrl(e.target.value.trim()));
+
     pasteBtn.addEventListener("click", async () => {
       try {
         const text = await navigator.clipboard.readText();
-        if (text) mediaUrl.value = text.trim();
+        if (text) {
+          mediaUrl.value = text.trim();
+          checkSunoUrl(mediaUrl.value);
+        }
       } catch (err) {
         alert("Paste directly into input field.");
       }
